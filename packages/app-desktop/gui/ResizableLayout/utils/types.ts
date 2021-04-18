@@ -21,6 +21,7 @@ export interface LayoutItem {
 	resizableBottom?: boolean;
 	visible?: boolean;
 	context?: any;
+	flexible?: boolean;
 }
 
 export const tempContainerPrefix = 'tempContainer-';

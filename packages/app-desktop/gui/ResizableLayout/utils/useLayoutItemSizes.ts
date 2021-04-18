@@ -17,8 +17,8 @@ export function itemSize(item: LayoutItem, parent: LayoutItem | null, sizes: Lay
 	const bottomGap = !isContainer && (item.resizableBottom || parentResizableBottom) ? dragBarThickness : 0;
 
 	return {
-		width: ('width' in item ? item.width : sizes[item.key].width) - rightGap,
-		height: ('height' in item ? item.height : sizes[item.key].height) - bottomGap,
+		width: (!('width' in item) || item.flexible ? sizes[item.key].width : item.width) - rightGap,
+		height: (!('height' in item) || item.flexible ? sizes[item.key].height : item.height) - bottomGap,
 	};
 }
 
@@ -37,6 +37,7 @@ function calculateChildrenSizes(item: LayoutItem, parent: LayoutItem | null, siz
 
 	const noWidthChildren: any[] = [];
 	const noHeightChildren: any[] = [];
+	const flexibleChildren: LayoutItem[] = [];
 
 	for (const child of item.children) {
 		let w = 'width' in child ? child.width : null;
@@ -45,6 +46,8 @@ function calculateChildrenSizes(item: LayoutItem, parent: LayoutItem | null, siz
 			w = 0;
 			h = 0;
 		}
+
+		if (child.flexible === true) flexibleChildren.push(child);
 
 		sizes[child.key] = { width: w, height: h };
 		if (w !== null) remainingSize.width -= w;
@@ -59,6 +62,12 @@ function calculateChildrenSizes(item: LayoutItem, parent: LayoutItem | null, siz
 			const finalWidth = w;
 			sizes[child.item.key].width = finalWidth;
 		}
+	} else if (remainingSize.width !== 0 && flexibleChildren.length !== 0) {
+		const w = item.direction === 'row' ? Math.floor(remainingSize.width / flexibleChildren.length) : parentSize.width;
+		for (const child of flexibleChildren) {
+			const origWidth = sizes[child.key].width;
+			sizes[child.key].width = Math.max(origWidth + w, 0);
+		}
 	}
 
 	if (noHeightChildren.length) {
@@ -66,6 +75,12 @@ function calculateChildrenSizes(item: LayoutItem, parent: LayoutItem | null, siz
 		for (const child of noHeightChildren) {
 			const finalHeight = h;
 			sizes[child.item.key].height = finalHeight;
+		}
+	} else if (remainingSize.width !== 0 && flexibleChildren.length !== 0) {
+		const h = item.direction === 'column' ? Math.floor(remainingSize.height / flexibleChildren.length) : parentSize.height;
+		for (const child of flexibleChildren) {
+			const origHeight = sizes[child.key].height;
+			sizes[child.key].height = Math.max(origHeight + h, 0);
 		}
 	}
 
